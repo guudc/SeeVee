@@ -148,8 +148,8 @@ export default function App() {
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200 px-4 md:px-6 py-4 flex justify-between items-center print:hidden">
         <div className="flex items-center gap-2 md:gap-3">
-         <img src={logo} style={{maxWidth:'100px', maxHeight:'150px'}} />
-          <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-stone-900">SeeVee</h1>
+         <img src={logo} style={{maxWidth:'30px', maxHeight:'40px'}} />
+          <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-stone-900"><span style={{color:'#AD6BFF'}}>See</span><span style={{color:'#FF478B'}}>Vee</span></h1>
         </div>
         <div className="flex bg-stone-100 p-1 rounded-full">
           <button
