@@ -26,7 +26,6 @@ export const DEFAULT_CV_DATA: CVData = {
   education: [
   ],
   experience: [
-    {
   ],
   themeColor: "#0d9488", // Teal-600
 };
