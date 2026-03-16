@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { CVData, DEFAULT_CV_DATA, SavedCV } from './types';
 import { storage } from './services/storage';
+import logo from './logo.svg'
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
@@ -209,10 +210,7 @@ export default function App() {
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200 px-4 md:px-6 py-4 flex justify-between items-center print:hidden">
         <div className="flex items-center gap-2 md:gap-3">
-          <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 md:w-10 md:h-10">
-            <path d="M25 20C45 10 85 25 85 50C85 60 65 55 50 45C35 35 25 35 25 20Z" fill="#AD6BFF" />
-            <path d="M75 80C55 90 15 75 15 50C15 40 35 45 50 55C65 65 75 65 75 80Z" fill="#FF478B" />
-          </svg>
+          <img src={logo} style={{maxWidth:'40px', maxHeight:'40px'}} />
           <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-stone-900">SeeVee</h1>
         </div>
 
