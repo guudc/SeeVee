@@ -210,7 +210,7 @@ export default function App() {
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200 px-4 md:px-6 py-4 flex justify-between items-center print:hidden">
         <div className="flex items-center gap-2 md:gap-3">
-          <img src={logo} style={{maxWidth:'40px', maxHeight:'40px'}} />
+          <img src={logo} onClick={() => setView('dashboard')} style={{maxWidth:'40px', maxHeight:'40px'}} />
           <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-stone-900">SeeVee</h1>
         </div>
 
