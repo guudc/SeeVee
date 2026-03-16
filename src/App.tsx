@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import logo from './logo.svg'
 import { 
   Plus, 
   Trash2, 
@@ -22,9 +21,14 @@ import {
   Users,
   ChevronRight,
   ChevronLeft,
-  Palette
+  Palette,
+  LayoutDashboard,
+  FileText,
+  Clock,
+  ArrowLeft
 } from 'lucide-react';
-import { CVData, DEFAULT_CV_DATA } from './types';
+import { CVData, DEFAULT_CV_DATA, SavedCV } from './types';
+import { storage } from './services/storage';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
@@ -41,10 +45,67 @@ const COLORS = [
 ];
 
 export default function App() {
-  const [cvData, setCvData] = useState<CVData>({ ...DEFAULT_CV_DATA, themeColor: '#334155' });
+  const [cvData, setCvData] = useState<CVData>(DEFAULT_CV_DATA);
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
+  const [view, setView] = useState<'dashboard' | 'editor'>('dashboard');
   const [step, setStep] = useState(0);
+  const [savedCVs, setSavedCVs] = useState<SavedCV[]>([]);
+  const [currentCVId, setCurrentCVId] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+
+  // Load saved CVs and current work on mount
+  useEffect(() => {
+    const saved = storage.getSavedCVs();
+    setSavedCVs(saved);
+
+    const currentWork = storage.getCurrentWork();
+    if (currentWork && (currentWork.name || currentWork.summary)) {
+      setCvData(currentWork);
+      setView('editor');
+    }
+  }, []);
+
+  // Auto-save current work
+  useEffect(() => {
+    if (view === 'editor') {
+      storage.saveCurrentWork(cvData);
+    }
+  }, [cvData, view]);
+
+  const handleNewCV = () => {
+    setCvData(DEFAULT_CV_DATA);
+    setCurrentCVId(null);
+    setView('editor');
+    setStep(0);
+  };
+
+  const handleEditCV = (cv: SavedCV) => {
+    setCvData(cv.data);
+    setCurrentCVId(cv.id);
+    setView('editor');
+    setStep(0);
+  };
+
+  const handleSaveCV = () => {
+    const id = currentCVId || crypto.randomUUID();
+    const newCV: SavedCV = {
+      id,
+      name: cvData.name || 'Untitled CV',
+      lastModified: Date.now(),
+      data: cvData
+    };
+    storage.saveCV(newCV);
+    setSavedCVs(storage.getSavedCVs());
+    setCurrentCVId(id);
+  };
+
+  const handleDeleteCV = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this CV?')) {
+      storage.deleteCV(id);
+      setSavedCVs(storage.getSavedCVs());
+    }
+  };
 
   const handlePrint = () => {
     const element = document.getElementById('cv-preview');
@@ -148,39 +209,149 @@ export default function App() {
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200 px-4 md:px-6 py-4 flex justify-between items-center print:hidden">
         <div className="flex items-center gap-2 md:gap-3">
-         <img src={logo} style={{maxWidth:'30px', maxHeight:'40px'}} />
-          <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-stone-900"><span style={{color:'#AD6BFF'}}>See</span><span style={{color:'#FF478B'}}>Vee</span></h1>
+          <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 md:w-10 md:h-10">
+            <path d="M25 20C45 10 85 25 85 50C85 60 65 55 50 45C35 35 25 35 25 20Z" fill="#AD6BFF" />
+            <path d="M75 80C55 90 15 75 15 50C15 40 35 45 50 55C65 65 75 65 75 80Z" fill="#FF478B" />
+          </svg>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-stone-900">SeeVee</h1>
         </div>
-        <div className="flex bg-stone-100 p-1 rounded-full">
-          <button
-            onClick={() => setActiveTab('edit')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTab === 'edit' ? 'bg-white shadow-sm text-[#AD6BFF]' : 'text-stone-500 hover:text-stone-700'
-            }`}
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => setActiveTab('preview')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTab === 'preview' ? 'bg-white shadow-sm text-[#AD6BFF]' : 'text-stone-500 hover:text-stone-700'
-            }`}
-          >
-            Preview
-          </button>
-        </div>
-        <button
-          onClick={handlePrint}
-          className="flex items-center justify-center w-10 h-10 md:w-auto md:px-5 md:py-2.5 bg-[#141414] text-white rounded-full text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-purple-500/10"
-        >
-          <Download className="w-4 h-4" />
-          <span className="hidden md:inline ml-2">Export PDF</span>
-        </button>
+
+        {view === 'editor' ? (
+          <>
+            <div className="flex bg-stone-100 p-1 rounded-full">
+              <button
+                onClick={() => setActiveTab('edit')}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  activeTab === 'edit' ? 'bg-white shadow-sm text-[#AD6BFF]' : 'text-stone-500 hover:text-stone-700'
+                }`}
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  activeTab === 'preview' ? 'bg-white shadow-sm text-[#AD6BFF]' : 'text-stone-500 hover:text-stone-700'
+                }`}
+              >
+                Preview
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setView('dashboard')}
+                className="hidden md:flex items-center gap-2 text-stone-500 hover:text-stone-900 px-4 py-2 text-sm font-medium"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </button>
+              <button
+                onClick={handleSaveCV}
+                className="flex items-center gap-2 bg-stone-100 text-stone-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-stone-200"
+              >
+                Save
+              </button>
+              <button
+                onClick={handlePrint}
+                className="flex items-center justify-center w-10 h-10 md:w-auto md:px-5 md:py-2.5 bg-[#141414] text-white rounded-full text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-purple-500/10"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden md:inline ml-2">Export PDF</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleNewCV}
+              className="flex items-center gap-2 bg-[#AD6BFF] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 shadow-lg shadow-purple-500/20"
+            >
+              <Plus className="w-4 h-4" />
+              Create New
+            </button>
+          </div>
+        )}
       </nav>
 
-      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-73px)]">
-        {/* Form Section */}
-        <div className={`p-4 md:p-8 space-y-6 print:hidden border-r border-stone-200 bg-white ${activeTab === 'preview' ? 'hidden lg:block' : 'block'}`}>
+      <main className="max-w-7xl mx-auto min-h-[calc(100vh-73px)]">
+        {view === 'dashboard' ? (
+          <div className="p-6 md:p-12 space-y-12">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="space-y-2">
+                <h2 className="text-4xl font-serif italic text-stone-900">Your Dashboard</h2>
+                <p className="text-stone-500">Manage and edit your saved CVs locally.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* New CV Card */}
+              <button
+                onClick={handleNewCV}
+                className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-stone-200 hover:border-[#AD6BFF] hover:bg-purple-50/50 transition-all group h-[240px]"
+              >
+                <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center group-hover:bg-[#AD6BFF] group-hover:text-white transition-colors">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-stone-900">Create New CV</p>
+                  <p className="text-xs text-stone-500 mt-1">Start from a blank template</p>
+                </div>
+              </button>
+
+              {/* Saved CVs */}
+              {savedCVs.map((cv) => (
+                <div
+                  key={cv.id}
+                  onClick={() => handleEditCV(cv)}
+                  className="group relative flex flex-col p-6 rounded-2xl bg-white border border-stone-200 hover:border-[#AD6BFF] hover:shadow-xl hover:shadow-purple-500/5 transition-all cursor-pointer h-[240px]"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-stone-50 flex items-center justify-center text-stone-400 group-hover:bg-purple-50 group-hover:text-[#AD6BFF] transition-colors">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <button
+                      onClick={(e) => handleDeleteCV(cv.id, e)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all font-medium text-xs"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                  
+                  <div className="mt-auto space-y-2">
+                    <h3 className="font-bold text-lg text-stone-900 group-hover:text-[#AD6BFF] transition-colors truncate">
+                      {cv.name}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-stone-400">
+                      <Clock className="w-3 h-3" />
+                      <span>Last modified {new Date(cv.lastModified).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                    <ArrowLeft className="w-5 h-5 text-[#AD6BFF] rotate-180" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {savedCVs.length === 0 && (
+              <div className="text-center py-20 bg-stone-50 rounded-3xl border border-stone-100">
+                <div className="max-w-xs mx-auto space-y-4">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                    <FileText className="w-8 h-8 text-stone-200" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-medium text-stone-900">No saved CVs yet</p>
+                    <p className="text-sm text-stone-500">Your work will appear here once you save it.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2">
+            {/* Form Section */}
+            <div className={`p-4 md:p-8 space-y-6 print:hidden border-r border-stone-200 bg-white ${activeTab === 'preview' ? 'hidden lg:block' : 'block'}`}>
           <div className="flex flex-col space-y-4">
             <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar border-b border-stone-100 scroll-smooth">
               {steps.map((s, i) => (
@@ -734,7 +905,9 @@ export default function App() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
+    )}
+  </main>
 
       {/* Print Styles */}
       <style>{`

@@ -13,19 +13,22 @@ export type CVData = {
   themeColor: string;
 };
 
+export type SavedCV = {
+  id: string;
+  name: string;
+  lastModified: number;
+  data: CVData;
+};
+
 export const DEFAULT_CV_DATA: CVData = {
   name: "",
   summary: "",
-  skills: [
-    
-  ],
+  skills: [],
   phone: "",
   email: "",
   location: "",
   socials: [],
-  education: [
-  ],
-  experience: [
-  ],
-  themeColor: "#0d9488", // Teal-600
+  education: [],
+  experience: [],
+  themeColor: "#334155",
 };
